@@ -3,6 +3,7 @@ package com.lojaya
 import android.util.Log
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.app
+import com.lagradost.cloudstream3.network
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.loadExtractor
 import org.jsoup.nodes.Element
@@ -44,7 +45,7 @@ class SkillShareProvider : MainAPI() {
     // homepage
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val pagedlink = request.data.replace("[pageNum]", page.toString())
-        val doc = app.get(pagedlink).document
+        val doc = app.get(pagedlink, interceptor = CloudflareKiller()).document
         val home = doc.select("body div.class-card-inner-wrapper").mapNotNull { toSearchResponse(it) }
         if (home.isEmpty()) {
             throw ErrorLoadingException("No homepage data found!")
@@ -56,7 +57,7 @@ class SkillShareProvider : MainAPI() {
     // search result
     override suspend fun search(query: String): List<SearchResponse> {
         var searchUrl = "$mainUrl/en/search?query=$query"
-        var doc = app.get(searchUrl).document
+        var doc = app.get(searchUrl, interceptor = CloudflareKiller()).document
         val search = doc.select("body div.class-card-inner-wrapper").mapNotNull { toSearchResponse(it) }
         if (search.isEmpty()) {
             throw ErrorLoadingException("No result found!")
@@ -67,7 +68,7 @@ class SkillShareProvider : MainAPI() {
 
     // entry detail
     override suspend fun load(url: String): LoadResponse {
-        val doc = app.get(url).document
+        val doc = app.get(url, interceptor = CloudflareKiller()).document
 
         val title = doc.selectFirst("meta[property='og:title']")!!.attr("content")
         val thumb = doc.selectFirst("meta[property='og:image']")!!.attr("content")
