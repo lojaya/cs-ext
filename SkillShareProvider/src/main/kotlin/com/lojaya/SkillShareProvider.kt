@@ -73,13 +73,15 @@ class SkillShareProvider : MainAPI() {
         val thumb = doc.selectFirst("meta[property='og:image']")!!.attr("content")
         val link = doc.selectFirst("meta[property='og:url']")!!.attr("content")
         val plot = doc.selectFirst("meta[property='og:description']")!!.attr("content")
+        val trailer = doc.selectFirst("meta[name='twitter:player:stream']")!!.attr("content")
         val genre = doc.select("a.tag").mapNotNull{ it!!.text().trim() }
-        val actors = listOf(ActorData(Actor(doc.select("a.link-main").text())))
+        val actors = listOf(ActorData(Actor(doc.selectFirst("a.link-main")!!.text())))
         // val publishedAt = doc.selectFirst("meta[property='og:video:release']")!!.attr("content")
         // val duration = doc.selectFirst("meta[property='og:video:duration']")!!.attr("content").toInt() / 60
 
-        val myTrailer = doc.selectFirst("meta[name='twitter:player:stream']")!!.attr("content").let {
-            mutableListOf(TrailerData(extractorUrl = it, referer = "", raw = true))
+        var trailers =  mutableListOf<TrailerData>()
+        trailer.let {
+            trailers.add(TrailerData(extractorUrl = it, referer = "", raw = true))
         }
 
         val recommendations = doc.select("div.ss-class").mapNotNull{
@@ -108,7 +110,7 @@ class SkillShareProvider : MainAPI() {
 
             tags = genre, // tags (list<string>?)
             // duration = duration, // duration (int?)
-            trailers = myTrailer,
+            trailers = trailers,
             actors = actors,
             backgroundPosterUrl = thumb, // poster (string?)
             recommendations = recommendations
