@@ -69,23 +69,31 @@ class SkillShareProvider : MainAPI() {
     override suspend fun load(url: String): LoadResponse {
         val doc = app.get(url).document
 
-        val thumb = doc.selectFirst("meta[name='og:image']")!!.attr("content")
-        val title = doc.selectFirst("meta[name='og:title']")!!.attr("content")
-        val description = doc.selectFirst("meta[name='og:description']")!!.attr("content")
-
+        val title = doc.selectFirst("meta[property='og:title']")!!.attr("content")
+        val thumb = doc.selectFirst("meta[property='og:image']")!!.attr("content")
+        val link = doc.selectFirst("meta[property='og:url']")!!.attr("content")
+        val plot = doc.selectFirst("meta[property='og:description']")!!.attr("content")
         val genre = doc.select("a.tag").mapNotNull{ it!!.text().trim() }
-        val stars = doc.select("a.link-main").text()
-        val actors = listOf(ActorData(Actor(stars)))
+        val actors = listOf(ActorData(Actor(doc.select("a.link-main").text())))
         // val publishedAt = doc.selectFirst("meta[property='og:video:release']")!!.attr("content")
         // val duration = doc.selectFirst("meta[property='og:video:duration']")!!.attr("content").toInt() / 60
 
-        val trailer = doc.selectFirst("meta[name='twitter:player:stream']")!!.attr("content")
-        val myTrailer = mutableListOf<TrailerData>()
-        trailer.let {
-            myTrailer.add(TrailerData(extractorUrl = trailer, referer = "", raw = true))
+        val myTrailer = doc.selectFirst("meta[name='twitter:player:stream']")!!.attr("content").let {
+            mutableListOf(TrailerData(extractorUrl = it, referer = "", raw = true))
         }
 
-        val link = ""
+        val recommendations = doc.select("div.ss-class").mapNotNull{
+            var recTitle = it.select(".ss-card__title a").text()
+            var recThumb = it.select("a img").attr("src")
+            var recGuid = it.select(".ss-card__title a").attr("href")
+            MovieSearchResponse(
+                recTitle,
+                recGuid,
+                this@SkillShareProvider.name,
+                globalTvType,
+                recThumb
+            )
+        }
 
         return MovieLoadResponse(
             name = title, // film title (string)
@@ -96,16 +104,14 @@ class SkillShareProvider : MainAPI() {
 
             posterUrl = thumb, // poster (string?)
             // year = extractYear(publishedAt), // year (int?)
-            plot = description, // plot (string?)
+            plot = plot, // plot (string?)
 
             tags = genre, // tags (list<string>?)
             // duration = duration, // duration (int?)
             trailers = myTrailer,
             actors = actors,
             backgroundPosterUrl = thumb, // poster (string?)
-            // recommendations = recommendations!!.mapNotNull {
-            //     MovieSearchResponse(it.title, it.guid, this@SkillShareProvider.name, globalTvType, thumb)
-            // }
+            recommendations = recommendations
         )
     }
 
